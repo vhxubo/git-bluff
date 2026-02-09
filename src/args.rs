@@ -1,0 +1,25 @@
+use chrono::NaiveDate;
+use clap::{Parser};
+use std::path::PathBuf;
+
+#[derive(Debug, Parser, Clone)]
+#[command(name = "git-bluff")]
+#[command(author = "vhxubo")]
+#[command(version = "0.1.0")]
+#[command(about = "Generate daily reports from git commits", long_about = None)]
+pub struct Args {
+    #[arg(short, long, default_value = ".")]
+    pub directory: PathBuf,
+
+    #[arg(short, long, default_value = "false")]
+    pub recursive: bool,
+
+    #[arg(long)]
+    pub date: Option<NaiveDate>,
+
+    #[arg(long)]
+    pub author: Option<String>,
+
+    #[arg(short, long, default_value = "false")]
+    pub verbose: bool,
+}
