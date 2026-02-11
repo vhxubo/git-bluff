@@ -1,11 +1,13 @@
 mod args;
 mod commit;
+mod config;
 mod git_repo;
 mod report;
 
 use anyhow::Result;
 use args::Args;
 use clap::Parser;
+use config::Config;
 
 fn main() -> Result<()> {
     let args = Args::parse();
@@ -18,8 +20,18 @@ fn main() -> Result<()> {
         if let Some(date) = args.date {
             println!("📅 Date filter: {}", date);
         }
+        if let Some(ref config_path) = args.config {
+            println!("📄 Config file: {}", config_path.display());
+        }
         println!();
     }
+
+    // Load config if provided
+    let config = if let Some(config_path) = &args.config {
+        Some(Config::load(config_path)?)
+    } else {
+        None
+    };
 
     let repos = git_repo::find_git_repositories(&args.directory, args.recursive)?;
 
@@ -47,7 +59,12 @@ fn main() -> Result<()> {
         all_commits.extend(commits);
     }
 
-    let report = report::generate_report(&all_commits)?;
+    // Generate report with or without config
+    let report = if let Some(ref cfg) = config {
+        report::generate_report_with_config(&all_commits, cfg, args.verbose)?
+    } else {
+        report::generate_report(&all_commits)?
+    };
 
     println!("{}", report.summary);
 

@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use clap::{Parser};
+use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser, Clone)]
@@ -22,4 +22,7 @@ pub struct Args {
 
     #[arg(short, long, default_value = "false")]
     pub verbose: bool,
+
+    #[arg(long)]
+    pub config: Option<PathBuf>,
 }
