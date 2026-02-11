@@ -10,9 +10,6 @@ use clap::Parser;
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    println!("🔍 Git Bluff - Daily Report Generator");
-    println!("========================================");
-
     if args.verbose {
         println!("📂 Scanning directory: {}", args.directory.display());
         if args.recursive {
@@ -52,8 +49,6 @@ fn main() -> Result<()> {
 
     let report = report::generate_report(&all_commits)?;
 
-    println!("\n📊 Daily Report Generated!");
-    println!("=========================");
     println!("{}", report.summary);
 
     Ok(())

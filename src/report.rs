@@ -55,13 +55,13 @@ fn clean_commit_line(line: &str) -> Option<String> {
 
 fn format_text_summary(commits: &[CommitInfo]) -> String {
     let mut output = String::new();
-
-    output.push_str("═══════════════════════════════════════════════════════════════\n");
-    output.push_str("                    DAILY GIT REPORT\n");
-    output.push_str("═══════════════════════════════════════════════════════════════\n\n");
+    let mut _path = "";
 
     for commit in commits {
-        write!(output, "\n📍 Repository Path: {}\n", commit.path).unwrap();
+        if commit.path != _path {
+            write!(output, "\n📍 Repository Path: {}\n", commit.path).unwrap();
+        }
+        _path = &commit.path;
         let cleaned_lines: Vec<String> = commit
             .message
             .lines()
