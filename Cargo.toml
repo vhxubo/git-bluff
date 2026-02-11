@@ -6,7 +6,7 @@ description = "Generate daily reports from git commits"
 authors = ["Developer"]
 
 [dependencies]
-git2 = "0.18"
+git2 = { version = "0.18", features = ["vendored-libgit2"] }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4", features = ["derive"] }
 anyhow = "1.0"
