@@ -3,6 +3,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use git2::{Commit, Repository, Sort};
 use std::path::Path;
 
+#[allow(dead_code)]
 pub struct CommitInfo {
     pub id: String,
     pub author_name: String,
@@ -85,19 +86,14 @@ pub fn get_commits(
             }
         }
 
-        let commit_info = parse_commit(&commit, &repo_name, &repo, &full_path)?;
+        let commit_info = parse_commit(&commit, &repo_name, &full_path)?;
         commits.push(commit_info);
     }
 
     Ok(commits)
 }
 
-fn parse_commit<'a>(
-    commit: &Commit<'a>,
-    repo_name: &str,
-    repo: &Repository,
-    path: &Path,
-) -> Result<CommitInfo> {
+fn parse_commit<'a>(commit: &Commit<'a>, repo_name: &str, path: &Path) -> Result<CommitInfo> {
     let message = commit.message().unwrap_or("").to_string();
 
     Ok(CommitInfo {

@@ -12,7 +12,7 @@ pub fn find_git_repositories(directory: &Path, depth: usize) -> Result<Vec<PathB
         return Ok(repos);
     }
 
-    let mut walker = WalkBuilder::new(directory)
+    let walker = WalkBuilder::new(directory)
         .max_depth(Some(depth + 1)) // +1 because we start at the directory itself
         .follow_links(false)
         .require_git(false) // Don't require .git to walk
