@@ -44,9 +44,13 @@ fn clean_commit_line(line: &str) -> Option<String> {
         return None;
     }
 
-    // 2. 移除常用的 stage 前缀 (feat:, fix: 等)
+    // 2. 移除 conventional commits 前缀
+    // ref: https://www.conventionalcommits.org/en/v1.0.0/
+    // @commitlint/config-conventional (Angular convention) 推荐:
+    // feat, fix, build, chore, ci, docs, perf, refactor, style, test, revert
     let stages = [
-        "feat", "fix", "chore", "docs", "refactor", "test", "style", "perf",
+        "feat", "fix", "build", "chore", "ci", "docs", "perf", "refactor", "style", "test",
+        "revert",
     ];
 
     let final_content = if let Some((prefix, content)) = base_content.split_once(':') {
