@@ -17,6 +17,12 @@ pub struct Args {
     #[arg(long)]
     pub date: Option<NaiveDate>,
 
+    #[arg(long, default_value = "")]
+    pub from: String,
+
+    #[arg(long, default_value = "")]
+    pub to: String,
+
     #[arg(long)]
     pub author: Option<String>,
 

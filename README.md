@@ -22,11 +22,19 @@ git-bluff [OPTIONS]
 |------|-------------|
 | `-d, --directory <PATH>` | Starting directory to scan (default: `.`) |
 | `-r, --recursive` | Recursively scan for git repositories |
-| `--date <DATE>` | Filter commits by date (format: YYYY-MM-DD) |
+| `--date <DATE>` | Filter commits by single date (format: YYYY-MM-DD) |
+| `--from <DATE>` | Start date for date range (format: YYYY-MM-DD) |
+| `--to <DATE>` | End date for date range (format: YYYY-MM-DD) |
 | `--author <NAME>` | Filter commits by author name |
 | `--config <PATH>` | Path to YAML configuration file |
 | `-v, --verbose` | Show repository paths in output |
 | `--help` | Show help information |
+
+**Date Filtering Rules:**
+- `--date` filters commits for a single day
+- `--from` and `--to` must be used together (filters commits within the date range)
+- If only `--from` is specified, end date defaults to today
+- `--date` cannot be used with `--from`/`--to` |
 
 ## Examples
 
@@ -42,14 +50,20 @@ git-bluff --directory /path/to/repos
 # Scan recursively
 git-bluff --directory /path/to/repos --recursive
 
-# Filter by date
+# Filter by single date
 git-bluff --date 2026-01-15
+
+# Filter by date range (from to today)
+git-bluff --from 2026-01-01
+
+# Filter by date range (specific start and end)
+git-bluff --from 2026-01-01 --to 2026-01-31
 
 # Filter by author
 git-bluff --author "John"
 
 # Combine filters
-git-bluff --date 2026-01-15 --author "John" --verbose
+git-bluff --from 2026-01-01 --author "John" --verbose
 ```
 
 ### With Configuration

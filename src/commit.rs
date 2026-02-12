@@ -15,7 +15,8 @@ pub struct CommitInfo {
 
 pub fn get_commits(
     repo_path: &Path,
-    date: Option<NaiveDate>,
+    start_date: Option<NaiveDate>,
+    end_date: Option<NaiveDate>,
     author: Option<&str>,
 ) -> Result<Vec<CommitInfo>> {
     let full_path = std::fs::canonicalize(repo_path)
@@ -52,7 +53,7 @@ pub fn get_commits(
             continue;
         }
 
-        if let Some(filter_date) = date {
+        if start_date.is_some() || end_date.is_some() {
             let commit_date = commit.time().seconds();
             let naive_date = DateTime::<Utc>::from_timestamp(commit_date, 0)
                 .map(|dt| dt.date_naive())
@@ -61,8 +62,15 @@ pub fn get_commits(
                     dt.map(|d| d.date_naive()).unwrap_or_default()
                 });
 
-            if naive_date != filter_date {
-                continue;
+            if let Some(start) = start_date {
+                if naive_date < start {
+                    continue;
+                }
+            }
+            if let Some(end) = end_date {
+                if naive_date > end {
+                    continue;
+                }
             }
         }
 

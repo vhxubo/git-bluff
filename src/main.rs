@@ -12,12 +12,26 @@ use config::Config;
 fn main() -> Result<()> {
     let args = Args::parse();
 
+    // Validate date arguments
+    let from_empty = args.from.is_empty();
+    let to_empty = args.to.is_empty();
+
+    if (args.date.is_some()) && (!from_empty || !to_empty) {
+        anyhow::bail!("--date cannot be used with --from/--to");
+    }
+
+    if !to_empty && from_empty {
+        anyhow::bail!("--to must be used with --from");
+    }
+
     if args.verbose {
         println!("📂 Scanning directory: {}", args.directory.display());
         if args.recursive {
             println!("🔄 Recursive mode enabled");
         }
-        if let Some(date) = args.date {
+        if !from_empty && !to_empty {
+            println!("📅 Date range: {} to {}", args.from, args.to);
+        } else if let Some(date) = args.date {
             println!("📅 Date filter: {}", date);
         }
         if let Some(ref config_path) = args.config {
@@ -46,11 +60,25 @@ fn main() -> Result<()> {
             println!("📦 Processing: {}", repo_path.display());
         }
 
-        let target_date = args
-            .date
-            .unwrap_or_else(|| chrono::Local::now().date_naive());
+        let (start_date, end_date) = if !from_empty && !to_empty {
+            let today = chrono::Local::now().date_naive();
+            let start = args.from.parse().ok().unwrap_or(today);
+            let end = args.to.parse().ok().unwrap_or(today);
+            (Some(start), Some(end))
+        } else if !from_empty && to_empty {
+            // Only --from specified: from to today
+            let today = chrono::Local::now().date_naive();
+            let start = args.from.parse().ok().unwrap_or(today);
+            (Some(start), Some(today))
+        } else if let Some(date) = args.date {
+            (Some(date), Some(date))
+        } else {
+            let today = chrono::Local::now().date_naive();
+            (Some(today), Some(today))
+        };
 
-        let commits = commit::get_commits(&repo_path, Some(target_date), args.author.as_deref())?;
+        let commits =
+            commit::get_commits(&repo_path, start_date, end_date, args.author.as_deref())?;
 
         if args.verbose && !commits.is_empty() {
             println!("   └── Found {} commit(s)", commits.len());
