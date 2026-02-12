@@ -17,7 +17,7 @@ pub fn get_commits(
     repo_path: &Path,
     start_date: Option<NaiveDate>,
     end_date: Option<NaiveDate>,
-    author: Option<&str>,
+    authors: &[String],
 ) -> Result<Vec<CommitInfo>> {
     let full_path = std::fs::canonicalize(repo_path)
         .with_context(|| format!("无法获取完整路径: {}", repo_path.display()))?;
@@ -74,10 +74,13 @@ pub fn get_commits(
             }
         }
 
-        if let Some(filter_author) = author {
+        // Filter by authors if any provided
+        if !authors.is_empty() {
             let commit_author = commit.author().name().unwrap_or("").to_lowercase();
-
-            if !commit_author.contains(&filter_author.to_lowercase()) {
+            let matches = authors
+                .iter()
+                .any(|filter_author| commit_author.contains(&filter_author.to_lowercase()));
+            if !matches {
                 continue;
             }
         }

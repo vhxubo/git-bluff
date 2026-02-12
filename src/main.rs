@@ -77,8 +77,7 @@ fn main() -> Result<()> {
             (Some(today), Some(today))
         };
 
-        let commits =
-            commit::get_commits(&repo_path, start_date, end_date, args.author.as_deref())?;
+        let commits = commit::get_commits(&repo_path, start_date, end_date, &args.author)?;
 
         if args.verbose && !commits.is_empty() {
             println!("   └── Found {} commit(s)", commits.len());

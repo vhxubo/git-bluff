@@ -25,7 +25,7 @@ git-bluff [OPTIONS]
 | `--date <DATE>` | Filter commits by single date (format: YYYY-MM-DD) |
 | `--from <DATE>` | Start date for date range (format: YYYY-MM-DD) |
 | `--to <DATE>` | End date for date range (format: YYYY-MM-DD) |
-| `--author <NAME>` | Filter commits by author name |
+| `--author <NAME>` | Filter commits by author name (supports multiple values) |
 | `--config <PATH>` | Path to YAML configuration file |
 | `-v, --verbose` | Show repository paths in output |
 | `--help` | Show help information |
@@ -41,6 +41,12 @@ git-bluff [OPTIONS]
 - `--from` and `--to` must be used together (filters commits within the date range)
 - If only `--from` is specified, end date defaults to today
 - `--date` cannot be used with `--from`/`--to` |
+
+**Author Filtering Rules:**
+- Filter commits by author name (supports multiple authors)
+- Multiple authors can be specified using comma-separated values: `--author "John,Jane"`
+- Or using multiple `--author` flags: `--author "John" --author "Jane"`
+- Matching is case-insensitive and uses partial matching
 
 ## Examples
 
@@ -70,6 +76,12 @@ git-bluff --from 2026-01-01 --to 2026-01-31
 
 # Filter by author
 git-bluff --author "John"
+
+# Filter by multiple authors (comma-separated)
+git-bluff --author "John,Jane"
+
+# Filter by multiple authors (multiple flags)
+git-bluff --author "John" --author "Jane"
 
 # Combine filters
 git-bluff --from 2026-01-01 --author "John" --verbose

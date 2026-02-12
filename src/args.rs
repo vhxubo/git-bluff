@@ -23,8 +23,8 @@ pub struct Args {
     #[arg(long, default_value = "")]
     pub to: String,
 
-    #[arg(long)]
-    pub author: Option<String>,
+    #[arg(long, value_delimiter = ',', num_args = 1..)]
+    pub author: Vec<String>,
 
     #[arg(short, long, default_value = "false")]
     pub verbose: bool,
