@@ -183,7 +183,7 @@ The tool automatically cleans commit messages:
 
 1. Removes `git-svn-id:` and everything after it
 2. Removes conventional commit prefixes:
-   - `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `perf:`
+   - `feat:`, `fix:`, `build:`, `chore:`, `ci:`, `docs:`, `perf:`, `refactor:`, `style:`, `test:`, `revert:`
 
 ## Building
 
