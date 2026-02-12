@@ -1,9 +1,9 @@
 [package]
 name = "git-bluff"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Generate daily reports from git commits"
-authors = ["Developer"]
+authors = ["vhxubo"]
 
 [dependencies]
 git2 = { version = "0.18", features = ["vendored-libgit2"] }
