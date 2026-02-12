@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[derive(Debug, Parser, Clone)]
 #[command(name = "git-bluff")]
 #[command(author = "vhxubo")]
-#[command(version = "0.2.0")]
+#[command(version = "0.2.1")]
 #[command(about = "Generate daily reports from git commits", long_about = None)]
 pub struct Args {
     #[arg(short, long, default_value = ".")]
