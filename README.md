@@ -21,7 +21,7 @@ git-bluff [OPTIONS]
 | Flag | Description |
 |------|-------------|
 | `-d, --directory <PATH>` | Starting directory to scan (default: `.`) |
-| `-r, --recursive` | Recursively scan for git repositories |
+| `--depth <NUMBER>` | Maximum directory depth to scan (default: `1`) |
 | `--date <DATE>` | Filter commits by single date (format: YYYY-MM-DD) |
 | `--from <DATE>` | Start date for date range (format: YYYY-MM-DD) |
 | `--to <DATE>` | End date for date range (format: YYYY-MM-DD) |
@@ -29,6 +29,12 @@ git-bluff [OPTIONS]
 | `--config <PATH>` | Path to YAML configuration file |
 | `-v, --verbose` | Show repository paths in output |
 | `--help` | Show help information |
+
+**Depth Rules:**
+- `--depth 0` scans only the starting directory
+- `--depth 1` (default) scans starting directory + 1 level of subdirectories
+- `--depth 2` scans starting directory + 2 levels, etc.
+- Directories listed in `.gitignore` are automatically skipped |
 
 **Date Filtering Rules:**
 - `--date` filters commits for a single day
@@ -44,11 +50,14 @@ git-bluff [OPTIONS]
 # Scan current directory for today's commits
 git-bluff
 
-# Scan specific directory
+# Scan specific directory (depth=1, default)
 git-bluff --directory /path/to/repos
 
-# Scan recursively
-git-bluff --directory /path/to/repos --recursive
+# Scan with depth=2 (scan 2 levels of subdirectories)
+git-bluff --directory /path/to/repos --depth 2
+
+# Scan with depth=3 (scan 3 levels of subdirectories)
+git-bluff --directory /path/to/repos --depth 3
 
 # Filter by single date
 git-bluff --date 2026-01-15

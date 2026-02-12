@@ -11,8 +11,8 @@ pub struct Args {
     #[arg(short, long, default_value = ".")]
     pub directory: PathBuf,
 
-    #[arg(short, long, default_value = "false")]
-    pub recursive: bool,
+    #[arg(long, default_value = "1")]
+    pub depth: usize,
 
     #[arg(long)]
     pub date: Option<NaiveDate>,

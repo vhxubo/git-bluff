@@ -26,8 +26,8 @@ fn main() -> Result<()> {
 
     if args.verbose {
         println!("📂 Scanning directory: {}", args.directory.display());
-        if args.recursive {
-            println!("🔄 Recursive mode enabled");
+        if args.depth > 0 {
+            println!("🔄 Max depth: {}", args.depth);
         }
         if !from_empty && !to_empty {
             println!("📅 Date range: {} to {}", args.from, args.to);
@@ -47,7 +47,7 @@ fn main() -> Result<()> {
         None
     };
 
-    let repos = git_repo::find_git_repositories(&args.directory, args.recursive)?;
+    let repos = git_repo::find_git_repositories(&args.directory, args.depth)?;
 
     if args.verbose {
         println!("✅ Found {} git repository(ies)\n", repos.len());
