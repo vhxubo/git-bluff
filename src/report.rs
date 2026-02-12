@@ -33,7 +33,7 @@ fn clean_commit_line(line: &str) -> Option<String> {
         return None;
     }
 
-    // 1. 移除 git-svn-id 及其之后的所有内容
+    // 1. Remove git-svn-id and everything after it
     let base_content = if let Some((before, _)) = line.split_once("git-svn-id:") {
         before.trim()
     } else {
@@ -44,9 +44,9 @@ fn clean_commit_line(line: &str) -> Option<String> {
         return None;
     }
 
-    // 2. 移除 conventional commits 前缀
+    // 2. Remove conventional commits prefixes
     // ref: https://www.conventionalcommits.org/en/v1.0.0/
-    // @commitlint/config-conventional (Angular convention) 推荐:
+    // @commitlint/config-conventional (Angular convention) recommended:
     // feat, fix, build, chore, ci, docs, perf, refactor, style, test, revert
     let stages = [
         "feat", "fix", "build", "chore", "ci", "docs", "perf", "refactor", "style", "test",
@@ -82,11 +82,11 @@ fn format_text_summary(commits: &[CommitInfo]) -> String {
         let cleaned_lines: Vec<String> = commit
             .message
             .lines()
-            .filter_map(clean_commit_line) // 自动移除空行并执行清理逻辑
+            .filter_map(clean_commit_line) // Automatically remove empty lines and perform cleanup
             .collect();
 
         if !cleaned_lines.is_empty() {
-            output.push_str(&cleaned_lines.join("\n")); // 后续行缩进
+            output.push_str(&cleaned_lines.join("\n")); // Indent subsequent lines
             output.push('\n');
         }
     }

@@ -20,7 +20,7 @@ pub fn get_commits(
     authors: &[String],
 ) -> Result<Vec<CommitInfo>> {
     let full_path = std::fs::canonicalize(repo_path)
-        .with_context(|| format!("无法获取完整路径: {}", repo_path.display()))?;
+        .with_context(|| format!("Failed to get full path: {}", repo_path.display()))?;
     let repo = Repository::open(repo_path)
         .with_context(|| format!("Failed to open repository: {}", repo_path.display()))?;
 
