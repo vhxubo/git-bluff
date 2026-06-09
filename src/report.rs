@@ -1,6 +1,17 @@
 use crate::commit::CommitInfo;
 use crate::config::Config;
+use regex::Regex;
 use std::fmt::Write;
+use std::sync::LazyLock;
+
+/// Regex for conventional commit format:
+/// `type(scope)!: description`
+///
+/// Captures: type, optional scope, optional breaking indicator, description
+static CONVENTIONAL_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?i)(?<type>[a-z]+)(?:\((?<scope>[^)]*\))?)?(?<breaking>!)?:\s*(?<desc>.+)$")
+        .unwrap()
+});
 
 #[derive(Debug)]
 pub struct Report {
@@ -27,6 +38,21 @@ pub fn generate_report_with_config(
     Ok(report)
 }
 
+/// Extract the subject line from a commit message (first non-empty line).
+fn commit_subject(message: &str) -> &str {
+    message
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or("")
+}
+
+/// Clean a conventional commit subject line, stripping type/scope prefix and git-svn-id.
+///
+/// Supports full conventional commit format:
+/// - `feat: description`
+/// - `feat(scope): description`
+/// - `feat!: description` (breaking)
+/// - `feat(scope)!: description` (breaking with scope)
 fn clean_commit_line(line: &str) -> Option<String> {
     let line = line.trim();
     if line.is_empty() {
@@ -44,21 +70,9 @@ fn clean_commit_line(line: &str) -> Option<String> {
         return None;
     }
 
-    // 2. Remove conventional commits prefixes
-    // ref: https://www.conventionalcommits.org/en/v1.0.0/
-    // @commitlint/config-conventional (Angular convention) recommended:
-    // feat, fix, build, chore, ci, docs, perf, refactor, style, test, revert
-    let stages = [
-        "feat", "fix", "build", "chore", "ci", "docs", "perf", "refactor", "style", "test",
-        "revert",
-    ];
-
-    let final_content = if let Some((prefix, content)) = base_content.split_once(':') {
-        if stages.contains(&prefix.to_lowercase().trim()) {
-            content.trim()
-        } else {
-            base_content
-        }
+    // 2. Strip conventional commit prefix via regex
+    let final_content = if let Some(caps) = CONVENTIONAL_RE.captures(base_content) {
+        caps.name("desc").map(|m| m.as_str()).unwrap_or(base_content)
     } else {
         base_content
     };
@@ -79,14 +93,11 @@ fn format_text_summary(commits: &[CommitInfo]) -> String {
             write!(output, "\nRepository Path: {}\n", commit.path).unwrap();
         }
         _path = &commit.path;
-        let cleaned_lines: Vec<String> = commit
-            .message
-            .lines()
-            .filter_map(clean_commit_line) // Automatically remove empty lines and perform cleanup
-            .collect();
 
-        if !cleaned_lines.is_empty() {
-            output.push_str(&cleaned_lines.join("\n")); // Indent subsequent lines
+        // Use only the subject line (first line) to avoid body noise
+        let subject = commit_subject(&commit.message);
+        if let Some(cleaned) = clean_commit_line(subject) {
+            output.push_str(&cleaned);
             output.push('\n');
         }
     }
@@ -153,18 +164,96 @@ fn format_text_summary_with_config(
 
         let mut line_num = 0;
         for commit in commit_list {
-            let cleaned_lines: Vec<String> = commit
-                .message
-                .lines()
-                .filter_map(clean_commit_line)
-                .collect();
-
-            for line in cleaned_lines {
+            // Use only the subject line (first line) to avoid body noise
+            let subject = commit_subject(&commit.message);
+            if let Some(cleaned) = clean_commit_line(subject) {
                 line_num += 1;
-                output.push_str(&format!("{}. {}\n", line_num, line));
+                output.push_str(&format!("{}. {}\n", line_num, cleaned));
             }
         }
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clean_plain_message() {
+        assert_eq!(clean_commit_line("fix the bug"), Some("fix the bug".into()));
+    }
+
+    #[test]
+    fn test_clean_conventional_simple() {
+        assert_eq!(clean_commit_line("feat: add login"), Some("add login".into()));
+    }
+
+    #[test]
+    fn test_clean_conventional_with_scope() {
+        assert_eq!(
+            clean_commit_line("feat(parser): add support"),
+            Some("add support".into())
+        );
+    }
+
+    #[test]
+    fn test_clean_conventional_breaking() {
+        assert_eq!(
+            clean_commit_line("feat!: breaking change"),
+            Some("breaking change".into())
+        );
+    }
+
+    #[test]
+    fn test_clean_conventional_scope_breaking() {
+        assert_eq!(
+            clean_commit_line("feat(api)!: breaking change"),
+            Some("breaking change".into())
+        );
+    }
+
+    #[test]
+    fn test_clean_case_insensitive() {
+        assert_eq!(
+            clean_commit_line("Feat: add login"),
+            Some("add login".into())
+        );
+        assert_eq!(
+            clean_commit_line("FIX: bug"),
+            Some("bug".into())
+        );
+    }
+
+    #[test]
+    fn test_clean_git_svn_id() {
+        assert_eq!(
+            clean_commit_line("fix bug\ngit-svn-id: svn://xxx"),
+            Some("fix bug".into())
+        );
+    }
+
+    #[test]
+    fn test_clean_empty_line() {
+        assert_eq!(clean_commit_line(""), None);
+        assert_eq!(clean_commit_line("   "), None);
+    }
+
+    #[test]
+    fn test_commit_subject_single_line() {
+        assert_eq!(commit_subject("feat: hello world"), "feat: hello world");
+    }
+
+    #[test]
+    fn test_commit_subject_multi_line() {
+        let msg = "feat: hello\n\nsome body text\n- bullet";
+        assert_eq!(commit_subject(msg), "feat: hello");
+    }
+
+    #[test]
+    fn test_commit_subject_empty_first_line() {
+        let msg = "\nfeat: hello\nbody";
+        assert_eq!(commit_subject(msg), "feat: hello");
+    }
 }
