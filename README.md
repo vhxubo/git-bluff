@@ -7,6 +7,7 @@ Generate formatted daily reports from git commits with project grouping support.
 - Collect commits from single or multiple git repositories
 - Filter by date and author
 - Group commits by project using YAML configuration
+- Match repos by directory prefix, glob pattern, or exact path
 - Clean commit messages (remove git-svn-id, conventional commit prefixes)
 - Format output with numbered commit lines
 
@@ -118,13 +119,47 @@ projects:
 
 ### Configuration Fields
 
-| Field | Description |
-|-------|-------------|
-| `project_name` | Display name for the project |
-| `project_code` | Unique code for the project |
-| `repositories` | List of repositories in this project |
-| `alias` | Display name for the repository |
-| `repo_path` | Path pattern to match repository (can be partial or full path) |
+| Field | Required | Description |
+|-------|----------|-------------|
+| `project_name` | Yes | Display name for the project |
+| `project_code` | Yes | Unique code for the project |
+| `directory` | No | Directory prefix — automatically matches all git repos under this path |
+| `repositories` | No | List of repositories to explicitly match (defaults to `[]`) |
+| `alias` | Yes | Display name for the repository |
+| `repo_path` | Yes | Path to match (supports glob wildcards, see below) |
+
+### Path Matching
+
+`repo_path` supports two matching modes:
+
+**Exact match** — substring containment on path components:
+```yaml
+repo_path: "/git/ec/frontend"
+```
+Matches paths containing `/git/ec/frontend` as a component boundary (e.g. `/home/user/git/ec/frontend`). Does **not** match `/git/ec/frontend-v2`.
+
+**Glob match** — when the pattern contains `*`, `?`, or `[`:
+```yaml
+repo_path: "/git/ec/*/order-svc"
+repo_path: "/git/log/service-?"
+```
+Standard glob syntax: `*` matches any path segment, `?` matches a single character, `[abc]` matches character classes.
+
+### Directory Prefix
+
+Use `directory` to automatically map all git repos under a path to a project, without listing each one individually:
+
+```yaml
+projects:
+  - project_name: "E-Commerce Platform"
+    project_code: "EC-2026"
+    directory: "/git/ec"
+    repositories:
+      - alias: "web_ui"
+        repo_path: "/git/ec/frontend"
+```
+
+Repos matching `directory` use their folder name as the alias. Repos listed in `repositories` take priority over `directory` when both match.
 
 ## Output Format
 
@@ -140,7 +175,7 @@ Repository Path: /home/user/repo
 
 ```
 =======================================================================
-Project AlphaJ-001 PR
+Project Alpha PRJ-001
 
 web_ui
 1. Add login feature
