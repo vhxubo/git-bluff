@@ -9,8 +9,7 @@ use std::sync::LazyLock;
 ///
 /// Captures: type, optional scope, optional breaking indicator, description
 static CONVENTIONAL_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?i)(?<type>[a-z]+)(?:\((?<scope>[^)]*\))?)?(?<breaking>!)?:\s*(?<desc>.+)$")
-        .unwrap()
+    Regex::new(r"^(?i)[a-z]+(?:\([^)]*\))?!?:\s*(?<desc>.+)$").unwrap()
 });
 
 #[derive(Debug)]
@@ -120,7 +119,7 @@ fn format_text_summary_with_config(
         if let Some((project_code, project_name, alias)) = config.find_matching_repo(&commit.path) {
             grouped
                 .entry((project_code, project_name, alias))
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(commit);
         } else {
             // Unmatched repos grouped under unknown
@@ -130,7 +129,7 @@ fn format_text_summary_with_config(
                     "Unknown".to_string(),
                     commit.path.clone(),
                 ))
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(commit);
         }
     }
@@ -168,7 +167,7 @@ fn format_text_summary_with_config(
             let subject = commit_subject(&commit.message);
             if let Some(cleaned) = clean_commit_line(subject) {
                 line_num += 1;
-                output.push_str(&format!("{}. {}\n", line_num, cleaned));
+                write!(output, "{}. {}\n", line_num, cleaned).unwrap();
             }
         }
     }

@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Repository {
@@ -23,7 +23,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load(path: &PathBuf) -> Result<Self, anyhow::Error> {
+    pub fn load(path: &Path) -> Result<Self, anyhow::Error> {
         let content = std::fs::read_to_string(path)?;
         let config = serde_yaml::from_str(&content)?;
         Ok(config)
@@ -35,8 +35,8 @@ impl Config {
     /// 1. `repositories` entries (exact path substring or glob pattern)
     /// 2. `directory` prefix match (alias = repo folder name)
     pub fn find_matching_repo(&self, commit_path: &str) -> Option<(String, String, String)> {
-        // Phase 1: repositories matching (higher priority)
         for project in &self.projects {
+            // Priority 1: explicit repository entries
             for repo in &project.repositories {
                 if path_matches(&repo.repo_path, commit_path) {
                     return Some((
@@ -46,13 +46,11 @@ impl Config {
                     ));
                 }
             }
-        }
 
-        // Phase 2: directory prefix matching
-        for project in &self.projects {
+            // Priority 2: directory prefix match
             if let Some(ref dir) = project.directory {
-                let dir_norm = dir.trim_end_matches('/');
-                if commit_path.starts_with(dir_norm) {
+                let dir_prefix = format!("{}/", dir.trim_end_matches('/'));
+                if commit_path.starts_with(&dir_prefix) {
                     let alias = Path::new(commit_path)
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())
@@ -73,15 +71,34 @@ impl Config {
 /// Match a configured path pattern against an actual commit path.
 ///
 /// If the pattern contains glob wildcards (`*`, `?`, `[`), use glob matching.
-/// Otherwise fall back to the original substring containment logic.
+/// Otherwise use path-component-aware matching — avoids `/git/ec`
+/// falsely matching `/git/ecology` while still matching `/git/ec/frontend`.
 fn path_matches(pattern: &str, path: &str) -> bool {
-    if pattern.contains('*') || pattern.contains('?') || pattern.contains('[') {
+    if has_glob_chars(pattern) {
         glob::Pattern::new(pattern)
             .map(|p| p.matches(path))
             .unwrap_or(false)
     } else {
-        path.contains(pattern) || pattern.contains(path.trim_end_matches('/'))
+        path_component_match(pattern, path)
     }
+}
+
+/// Component-aware path matching.
+///
+/// One path must contain the other at a `/` boundary:
+/// - `/git/ec/frontend` matches `/git/ec` (pattern is prefix of path)
+/// - `/git/ec` does NOT match `/git/ecology` (no component boundary)
+/// - `/home/user/repo` matches `/home/user/repo/` (trailing slash ignored)
+fn path_component_match(pattern: &str, path: &str) -> bool {
+    // Wrap with '/' so containment checks are component-boundary-aware
+    let p = format!("/{}/", pattern.trim_matches('/'));
+    let q = format!("/{}/", path.trim_matches('/'));
+    q.contains(&p) || p.contains(&q)
+}
+
+/// Check if a string contains glob metacharacters.
+fn has_glob_chars(s: &str) -> bool {
+    s.contains('*') || s.contains('?') || s.contains('[')
 }
 
 #[cfg(test)]
@@ -89,15 +106,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_path_matches_exact_substring() {
-        assert!(path_matches("/git/ec/frontend", "/home/user/git/ec/frontend"));
+    fn test_path_matches_exact() {
         assert!(path_matches("/git/ec/frontend", "/git/ec/frontend"));
     }
 
     #[test]
-    fn test_path_matches_reverse() {
-        // Original behavior: pattern contains the (trimmed) path
+    fn test_path_matches_subpath() {
+        assert!(path_matches("/git/ec/frontend", "/home/user/git/ec/frontend"));
+    }
+
+    #[test]
+    fn test_path_matches_trailing_slash() {
         assert!(path_matches("/home/user/git/ec/frontend", "/home/user/git/ec/frontend/"));
+    }
+
+    #[test]
+    fn test_path_no_false_prefix_match() {
+        // /git/ec should NOT match /git/ecology
+        assert!(!path_matches("/git/ec", "/git/ecology/repo"));
+        assert!(!path_matches("/git/ec", "/git/ecology"));
+    }
+
+    #[test]
+    fn test_path_matches_reverse_contains() {
+        // pattern longer than path: pattern starts with path
+        assert!(path_matches("/home/user/git/ec/frontend", "/home/user/git/ec"));
     }
 
     #[test]
@@ -129,6 +162,20 @@ mod tests {
         assert_eq!(code, "T-1");
         assert_eq!(name, "Test");
         assert_eq!(alias, "frontend");
+    }
+
+    #[test]
+    fn test_directory_no_false_prefix() {
+        let config = Config {
+            projects: vec![Project {
+                project_name: "Test".into(),
+                project_code: "T-1".into(),
+                directory: Some("/git/ec".into()),
+                repositories: vec![],
+            }],
+        };
+
+        assert!(config.find_matching_repo("/git/ecology/repo").is_none());
     }
 
     #[test]
