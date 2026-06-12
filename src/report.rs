@@ -172,6 +172,9 @@ fn format_text_summary_with_config(
         }
     }
 
+    // Add total commit count at the end
+    write!(output, "\n=======================================================================\nTotal commits: {}\n", commits.len()).unwrap();
+
     output
 }
 
