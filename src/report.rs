@@ -175,6 +175,7 @@ fn format_text_summary_with_config(
 
     // Output grouped by project_code
     let mut current_project = String::new();
+    let mut total_line_num = 0;
     for ((project_code, project_name, alias), commit_list) in grouped {
         if project_code != current_project {
             // Add separator between different projects
@@ -218,10 +219,11 @@ fn format_text_summary_with_config(
                 }
             }
         }
+        total_line_num += line_num;
     }
 
     // Add total commit count at the end
-    write!(output, "\n=======================================================================\nTotal commits: {}\n", commits.len()).unwrap();
+    write!(output, "\n=======================================================================\nTotal commits: {}\n", total_line_num).unwrap();
 
     output
 }
