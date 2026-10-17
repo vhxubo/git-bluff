@@ -7,67 +7,56 @@ on:
 
 jobs:
   release:
-    name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            binary: git-bluff
+          - goos: linux
+            goarch: amd64
             artifact: git-bluff-linux-x86_64
-          - target: x86_64-pc-windows-gnu
-            os: windows-latest
-            binary: git-bluff.exe
+            binary: git-bluff
+          - goos: linux
+            goarch: arm64
+            artifact: git-bluff-linux-arm64
+            binary: git-bluff
+          - goos: windows
+            goarch: amd64
             artifact: git-bluff-windows-x86_64
+            binary: git-bluff.exe
+          - goos: darwin
+            goarch: amd64
+            artifact: git-bluff-darwin-x86_64
+            binary: git-bluff
+          - goos: darwin
+            goarch: arm64
+            artifact: git-bluff-darwin-arm64
+            binary: git-bluff
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          toolchain: stable
-          targets: ${{ matrix.target }}
-
-      - name: Install dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config
-
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        run: rustup default stable
+          go-version-file: go.mod
 
       - name: Build release
-        shell: bash
         env:
-          OPENSSL_NO_VENDOR: 1
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cargo build --release
-          else
-            cargo build --release --target ${{ matrix.target }}
-          fi
-
-      - name: Package binary
-        shell: bash
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cd target/release
-          else
-            cd target/${{ matrix.target }}/release
-          fi
-          7z a ${{ matrix.artifact }}.zip ${{ matrix.binary }}
+          go build -trimpath -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o ${{ matrix.binary }}
+          zip ${{ matrix.artifact }}.zip ${{ matrix.binary }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.os == 'windows-latest' && 'target/release' || format('target/{0}/release', matrix.target) }}/${{ matrix.artifact }}.zip
+          path: ${{ matrix.artifact }}.zip
 
   create-release:
     name: Create Release

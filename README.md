@@ -2,6 +2,8 @@
 
 Generate formatted daily reports from git commits with project grouping support.
 
+Written in Go: a single static binary with no C dependencies, buildable for any platform with one command.
+
 ## Features
 
 - Collect commits from single or multiple git repositories
@@ -29,25 +31,30 @@ git-bluff [OPTIONS]
 | `--author <NAME>` | Filter commits by author name (supports multiple values) |
 | `--config <PATH>` | Path to YAML configuration file |
 | `-v, --verbose` | Show repository paths in output |
+| `-V, --version` | Print version |
 | `--help` | Show help information |
 
 **Depth Rules:**
-- `--depth 0` scans only the starting directory
-- `--depth 1` (default) scans starting directory + 1 level of subdirectories
-- `--depth 2` scans starting directory + 2 levels, etc.
-- Directories listed in `.gitignore` are automatically skipped |
+- `--depth 0` checks only the starting directory itself
+- `--depth N` collects git repositories up to `N+1` levels of subdirectories below the starting directory
+- Hidden directories are skipped, and directories listed in `.gitignore` files found along the way are skipped too
 
 **Date Filtering Rules:**
 - `--date` filters commits for a single day
-- `--from` and `--to` must be used together (filters commits within the date range)
+- `--from` and `--to` filter commits within the date range (`--to` requires `--from`)
 - If only `--from` is specified, end date defaults to today
-- `--date` cannot be used with `--from`/`--to` |
+- `--date` cannot be used with `--from`/`--to`
+- Invalid dates are rejected with an error
+- Commit days are computed in the **local timezone** — a commit made at 01:30 lands on that calendar day, not on the previous UTC day
 
 **Author Filtering Rules:**
 - Filter commits by author name (supports multiple authors)
 - Multiple authors can be specified using comma-separated values: `--author "John,Jane"`
 - Or using multiple `--author` flags: `--author "John" --author "Jane"`
 - Matching is case-insensitive and uses partial matching
+
+**Robustness:**
+- Repositories that cannot be read (e.g. freshly `git init`-ed with no commits) are skipped with a warning on stderr instead of aborting the whole report
 
 ## Examples
 
@@ -60,11 +67,8 @@ git-bluff
 # Scan specific directory (depth=1, default)
 git-bluff --directory /path/to/repos
 
-# Scan with depth=2 (scan 2 levels of subdirectories)
+# Scan deeper
 git-bluff --directory /path/to/repos --depth 2
-
-# Scan with depth=3 (scan 3 levels of subdirectories)
-git-bluff --directory /path/to/repos --depth 3
 
 # Filter by single date
 git-bluff --date 2026-01-15
@@ -143,7 +147,7 @@ Matches paths containing `/git/ec/frontend` as a component boundary (e.g. `/home
 repo_path: "/git/ec/*/order-svc"
 repo_path: "/git/log/service-?"
 ```
-Standard glob syntax: `*` matches any path segment, `?` matches a single character, `[abc]` matches character classes.
+Standard glob syntax: `*` matches any characters (including `/`), `?` matches a single character, `[abc]` matches character classes.
 
 ### Directory Prefix
 
@@ -167,8 +171,8 @@ Repos matching `directory` use their folder name as the alias. Repos listed in `
 
 ```
 Repository Path: /home/user/repo
-1. Add login feature
-2. Fix CSS bug
+Add login feature
+Fix CSS bug
 ```
 
 ### With Config (Normal Mode)
@@ -222,8 +226,23 @@ The tool automatically cleans commit messages:
 
 ## Building
 
+Requires Go 1.24+:
+
 ```bash
-cargo build --release
+go build
+```
+
+Cross-compile for any platform:
+
+```bash
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o git-bluff.exe
+CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64  go build -o git-bluff
+```
+
+Or install directly:
+
+```bash
+go install github.com/vhxubo/git-bluff@latest
 ```
 
 ## License
